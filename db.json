@@ -1,0 +1,22 @@
+{
+	"users": [
+		{
+			"id": 1,
+			"name": "John Doe"
+		},
+		{
+			"id": 2,
+			"name": "Jane Doe"
+		}
+	],
+	"products": [
+		{
+			"id": 1,
+			"name": "Apple"
+		},
+		{
+			"id": 2,
+			"name": "Banana"
+		}
+	]
+}
