@@ -4,6 +4,7 @@ import {
   getAll,
   getById,
   removeById,
+  softRemoveById,
   updateById,
 } from "../controllers/productControllers.js";
 import productSchema from "../validations/productSchemas.js";

@@ -1,4 +1,7 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const productSchema = new mongoose.Schema(
   {
@@ -21,7 +24,7 @@ const productSchema = new mongoose.Schema(
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
-      default: "677e4e682c424fac7fcd65ed",
+      default: process.env.DEFAULT_CATEGORY_ID,
     },
   },
   { timestamps: true, versionKey: false }

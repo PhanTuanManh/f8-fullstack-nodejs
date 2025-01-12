@@ -42,11 +42,14 @@ export const getById = async (req, res) => {
 
 export const removeById = async (req, res) => {
   const datas = await Category.findByIdAndDelete(req.params.id);
-  if (!datas) {
-    return res.status(404).send({
-      message: "Not found!",
+  if (!datas || datas._id.toString() === process.env.DEFAULT_CATEGORY_ID) {
+    return res.status(400).send({
+      message: !datas
+        ? "Category not found!"
+        : "Cannot delete default category!",
     });
   }
+
   return res.status(200).send({
     message: "Delete successfully!",
     datas,
