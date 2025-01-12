@@ -5,7 +5,7 @@ export const create = async (req, res) => {
   try {
     const newProduct = await Product.create(req.body);
 
-    await Category.findByIdAndUpdate(req.body.categoryId, {
+    await Category.findByIdAndUpdate(newProduct.categoryId, {
       $push: { products: newProduct._id },
     });
 

@@ -1,4 +1,9 @@
+import mongoose from "mongoose";
 import Category from "../models/Category.js";
+import Product from "../models/Product.js";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export const getAll = async (req, res) => {
   const datas = await Category.find();
@@ -41,19 +46,54 @@ export const getById = async (req, res) => {
 };
 
 export const removeById = async (req, res) => {
-  const datas = await Category.findByIdAndDelete(req.params.id);
-  if (!datas || datas._id.toString() === process.env.DEFAULT_CATEGORY_ID) {
-    return res.status(400).send({
-      message: !datas
-        ? "Category not found!"
-        : "Cannot delete default category!",
+  try {
+    const categoryId = req.params.id;
+
+    const category = await Category.findByIdAndDelete(categoryId);
+
+    if (!category) {
+      return res.status(404).send({
+        message: "Category not found!",
+      });
+    }
+
+    if (category._id.toString() === process.env.DEFAULT_CATEGORY_ID) {
+      return res.status(400).send({
+        message: "Cannot delete default category!",
+      });
+    }
+
+    const productsToUpdate = await Product.find({ categoryId: category._id });
+    console.log(productsToUpdate);
+
+    await Product.updateMany(
+      { categoryId: category._id },
+      {
+        $set: {
+          categoryId: new mongoose.Types.ObjectId(
+            process.env.DEFAULT_CATEGORY_ID
+          ),
+        },
+      }
+    );
+
+    await Category.updateOne(
+      { _id: new mongoose.Types.ObjectId(process.env.DEFAULT_CATEGORY_ID) },
+      { $push: { products: { $each: productsToUpdate.map((p) => p._id) } } }
+    );
+
+    return res.status(200).send({
+      message: "Delete successfully!",
+      deletedCategory: category,
+      updatedProductsCount: productsToUpdate.length,
+    });
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    return res.status(500).send({
+      message: "An error occurred while deleting category.",
+      error: error.message,
     });
   }
-
-  return res.status(200).send({
-    message: "Delete successfully!",
-    datas,
-  });
 };
 
 export const softRemoveById = async (req, res) => {
