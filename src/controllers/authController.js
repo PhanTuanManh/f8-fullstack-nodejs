@@ -2,44 +2,34 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+// Đăng ký người dùng
 export const register = async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
 
+    // Kiểm tra email đã tồn tại
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).send({ message: "Email already exists" });
     }
 
+    // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Tạo người dùng mới
     const newUser = await User.create({
       ...req.body,
       password: hashedPassword,
     });
 
-    const emailToken = jwt.sign(
-      { userId: newUser._id },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1d",
-      }
-    );
-    const verificationLink = `http://localhost:3000/verify-email?token=${emailToken}`;
-
-    await transporter.sendMail({
-      from: `"Test phat" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Email Verification",
-      html: `
-          <h1>Welcome to Test phat</h1>
-          <p>Click the link below to verify your email:</p>
-          <a href="${verificationLink}">Verify Email</a>
-        `,
-    });
-
     return res.status(201).send({
-      message: "User registered successfully. Please verify your email.",
+      message: "User registered successfully",
+      data: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+      },
     });
   } catch (error) {
     return res.status(500).send({
@@ -66,25 +56,18 @@ export const login = async (req, res) => {
       return res.status(401).send({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       { userId: user._id, email: user.email },
       jwtSecretKey,
-      {
-        expiresIn: "1h",
-      }
+      { expiresIn: "1h" }
     );
-
     const refreshToken = jwt.sign(
       { userId: user._id, email: user.email },
       jwtSecretKey,
-      {
-        expiresIn: "7d",
-      }
+      { expiresIn: "7d" }
     );
 
-    await User.findByIdAndUpdate(user._id, {
-      refreshToken: refreshToken,
-    });
+    await User.findByIdAndUpdate(user._id, { refreshToken });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -95,7 +78,7 @@ export const login = async (req, res) => {
 
     return res.status(200).send({
       message: "Login successful",
-      data: token,
+      data: { accessToken },
     });
   } catch (error) {
     return res.status(500).send({
@@ -108,29 +91,31 @@ export const login = async (req, res) => {
 export const refreshToken = async (req, res) => {
   try {
     const jwtSecretKey = process.env.JWT_SECRET;
-
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
       return res.status(401).send({ message: "Refresh token not provided" });
     }
 
-    jwt.verify(refreshToken, jwtSecretKey, (err, decoded) => {
+    jwt.verify(refreshToken, jwtSecretKey, async (err, decoded) => {
       if (err) {
         return res.status(401).send({ message: "Invalid refresh token" });
+      }
+
+      const user = await User.findById(decoded.userId);
+      if (!user || user.refreshToken !== refreshToken) {
+        return res.status(403).send({ message: "Refresh token mismatch" });
       }
 
       const newAccessToken = jwt.sign(
         { userId: decoded.userId, email: decoded.email },
         jwtSecretKey,
-        {
-          expiresIn: "1h",
-        }
+        { expiresIn: "1h" }
       );
 
       return res.status(200).send({
-        message: "Refresh token valid",
-        data: newAccessToken,
+        message: "Token refreshed successfully",
+        data: { accessToken: newAccessToken },
       });
     });
   } catch (error) {
