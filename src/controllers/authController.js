@@ -59,12 +59,12 @@ export const login = async (req, res) => {
     const accessToken = jwt.sign(
       { userId: user._id, email: user.email },
       jwtSecretKey,
-      { expiresIn: "1h" }
+      { expiresIn: "10d" }
     );
     const refreshToken = jwt.sign(
       { userId: user._id, email: user.email },
       jwtSecretKey,
-      { expiresIn: "7d" }
+      { expiresIn: "15d" }
     );
 
     await User.findByIdAndUpdate(user._id, { refreshToken });
