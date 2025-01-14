@@ -110,7 +110,7 @@ export const refreshToken = async (req, res) => {
       const newAccessToken = jwt.sign(
         { userId: decoded.userId, email: decoded.email },
         jwtSecretKey,
-        { expiresIn: "1h" }
+        { expiresIn: "10d" }
       );
 
       return res.status(200).send({
